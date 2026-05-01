@@ -1,0 +1,16 @@
+# Core dependencies
+langchain
+langchain-community
+langchain-ollama
+langchain-chroma
+langchain-text-splitters
+langchain-classic
+chromadb
+
+# Utilities
+mistune
+python-dotenv
+pydantic
+ruff
+# python-libmagic
+# unstructured[md]
