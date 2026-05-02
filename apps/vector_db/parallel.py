@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
 class ParallelVectorDBWrapper:
     def __init__(self, base_db, max_workers=4):
         self.base_db = base_db
@@ -19,10 +20,7 @@ class ParallelVectorDBWrapper:
                 processed_docs.append(f.result())
 
         # reuse original sync
-        return self.base_db.sync(
-            lambda *_: processed_docs,
-            []
-        )
+        return self.base_db.sync(lambda *_: processed_docs, [])
 
     def query(self, *args, **kwargs):
         return self.base_db.query(*args, **kwargs)

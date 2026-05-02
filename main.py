@@ -1,5 +1,13 @@
+from apps.bootstrap import create_orchestrator
+
+
 def main():
-    print("Hello from alfred!")
+    orchestrator = create_orchestrator()
+
+    while True:
+        query = input(">> ")
+        response = orchestrator.run(query)
+        print(response)
 
 
 if __name__ == "__main__":

@@ -14,3 +14,4 @@ states/
 *-db/
 temp/
 tmp/
+uv.lock
