@@ -1,11 +1,14 @@
 import sounddevice as sd
-import numpy as np
 
 from queue import Queue
-from faster_whisper import WhisperModel
+from queue import Empty
+from multiprocessing import Queue as MPQueue
+from multiprocessing import Process
 from .models import ConvertionConfig, SpeakerConfig, WhisperModelConfig
-from .pipeline import SpeakerPipeline
-from .models import SpeakerResult
+from threading import Thread
+from threading import Event
+
+from .utils import _pipeline_worker
 
 
 class Recorder:
@@ -22,35 +25,42 @@ class Recorder:
         self.frames_per_chunk = int(
             convertion_config.sample_rate * convertion_config.chunk_duration
         )
-
-        self.audio_queue = Queue()
-        self.audio_buffer = []
         self.c_config = convertion_config
+        self._stop_event = Event()
 
-        self.model = WhisperModel(
-            model_config.model_name,
-            device=model_config.device,
-            compute_type=model_config.compute_type,
+        self.audio_queue:Queue = Queue()
+        self._mp_queue:MPQueue = MPQueue()
+        self._out_queue:MPQueue = MPQueue()
+
+        self._inference_process = Process(
+            target=_pipeline_worker,
+            args=(self._mp_queue, self._out_queue, convertion_config, model_config, speaker_config),
+            daemon=True,
         )
+        self.audio_buffer = []
 
-        self.__init_speaker_pipeline(speaker_config=speaker_config,convertion_config = convertion_config)
-
-    def __init_speaker_pipeline(
-        self, speaker_config: SpeakerConfig, convertion_config: ConvertionConfig
-    ):
-        self.speaker = SpeakerPipeline(
-            speaker_config, sample_rate=convertion_config.sample_rate
-        )
-        self.speaker.ask_fn = self._on_unknown_speaker  # wire up resolution callback
-        self.speaker.enroll_if_needed()
 
     def audio_callback(self, indata, frames, time, status):
         if status:
-            print(status)
+            pass
         self.audio_queue.put(indata.copy())
 
-    def record(self):
+    def _feeder_worker(self):
+        """Bridges the thread queue → multiprocessing queue."""
+        while not self._stop_event.is_set():
+            try:
+                block = self.audio_queue.get(timeout=1.0)
+                self._mp_queue.put(block)
+            except Empty:
+                continue
 
+    def record(self):
+        self._inference_process.start()
+
+        feeder = Thread(target=self._feeder_worker, daemon=True)
+        feeder.start()
+
+        # InputStream must be open BEFORE we block — use a keep-alive loop
         with sd.InputStream(
             samplerate=self.c_config.sample_rate,
             channels=self.c_config.channels,
@@ -58,56 +68,24 @@ class Recorder:
             blocksize=self.frames_per_block,
         ):
             print("Listening... Say 'Good bye ALFRED' to stop")
-            while True:
-                sd.sleep(100)
+            try:
+                while self._inference_process.is_alive():
+                    self._inference_process.join(timeout=0.5)
+            except KeyboardInterrupt:
+                self._stop()
 
-    def transcriber(self):
+    def _transcription_worker(self):
+        """Runs on its own thread — pulls from queue and processes."""
+        while not self._stop_event.is_set():
+            try:
+                block = self.audio_queue.get(timeout=1.0)
+                self.speaker.push_audio_for_transcription(block)
+                self.audio_queue.task_done()
+            except Exception:
+                continue
 
-        while True:
-            block = self.audio_queue.get()
-            self.audio_buffer.append(block)
-
-            total_frames = sum(len(b) for b in self.audio_buffer)
-            if total_frames >= self.frames_per_chunk:
-                audio_data = np.concatenate(self.audio_buffer)[: self.frames_per_chunk]
-                self.audio_buffer = []
-
-                audio_data = audio_data.flatten().astype(np.float32)
-                result: SpeakerResult = self.speaker.process(audio_data)
-
-                if not result.is_owner:
-                    # Log the turn but don't transcribe — agent will ask later
-                    if result.speaker_name:
-                        print(
-                            f"\n[Speaker] {result.speaker_name} speaking — not transcribing"
-                        )
-                    else:
-                        print(
-                            f"\n[Speaker] Unknown ({result.speaker_id}) — queued for resolution"
-                        )
-                    continue
-
-                segments, _ = self.model.transcribe(
-                    audio_data,
-                    language="en",
-                    beam_size=5,
-                    vad_filter=True,  # ← VAD enabled (new)
-                    vad_parameters=dict(
-                        min_silence_duration_ms=300,
-                        speech_pad_ms=100,
-                    ),
-                )
-
-                for segment in segments:
-                    print(segment.text, end=" ", flush=True)
-
-    def _on_unknown_speaker(self, speaker_id: str, segments):
-        """
-        Called automatically when enough unknown speaker turns accumulate.
-        Replace the input() here with your agent's question mechanism.
-        """
-        print(f"\n[Agent] I noticed a new voice in the conversation ({speaker_id}).")
-        name = input("[Agent] Who was speaking? Enter their name: ").strip()
-        if name:
-            self.speaker.resolve_speaker(speaker_id, name)
-            print(f"[Agent] Got it — I'll remember {name}'s voice from now on.")
+    def _stop(self):
+        self._stop_event.set()
+        self._mp_queue.put(None)  # poison pill
+        self._inference_process.join(timeout=5)
+        print("\nStopped.")

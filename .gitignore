@@ -15,3 +15,9 @@ states/
 temp/
 tmp/
 uv.lock
+/models/
+keys
+scripts/
+db/
+voiceprint_samples/
+pretrained/
