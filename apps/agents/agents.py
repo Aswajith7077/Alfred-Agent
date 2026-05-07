@@ -11,7 +11,7 @@ from typing import Generator
 from typing import List
 
 
-class Orchestrator:
+class Agent:
     def __init__(
         self,
         voice: Voice,

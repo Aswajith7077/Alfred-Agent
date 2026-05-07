@@ -5,17 +5,18 @@ import numpy as np
 torch.set_num_threads(1)
 
 
-class SpeechDetector:
+class VAD:
     def __init__(self, input_sampling_rate: int, threshold: float = 0.5):
         self.original_sampling_rate = input_sampling_rate
         self.target_rate = 16000
         self._vad_chunk_samples = 512 if self.target_rate == 16000 else 256
         self.threshold = threshold
 
-        self.model, utils = torch.hub.load(
+        self.model, _ = torch.hub.load(
             repo_or_dir="snakers4/silero-vad", model="silero_vad"
         )
         self.model.eval()
+        print("[VAD] Loaded Successfully")
 
         # Reset stateful hidden state between utterances if needed
         self._reset_state()

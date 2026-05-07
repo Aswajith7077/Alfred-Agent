@@ -10,6 +10,7 @@ class ServiceContainer:
 
         self.__init_vector_db()
         self.__init_obsidian()
+        self.__init_email()
 
     def __init_vector_db(self):
         from vector_db import VectorDB, BM25Ranker
@@ -28,5 +29,10 @@ class ServiceContainer:
         )
         self.obsidian.sync_to_vector_db()
 
+    def __init_email(self):
+        from emails import register_emails
+
+        self.emails = register_emails()
+
     def get_tools(self):
-        return [self.obsidian]
+        return [self.obsidian, self.emails]

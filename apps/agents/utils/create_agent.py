@@ -1,17 +1,17 @@
-from agents import Orchestrator
+from agents import Agent
 from config import Settings
 from container import ServiceContainer
 
 
-def create_orchestrator() -> Orchestrator:
+def create_agent() -> Agent:
     container: ServiceContainer = ServiceContainer()
     settings: Settings = container.settings
 
-    orchestrator: Orchestrator = Orchestrator(
+    agent: Agent = Agent(
         voice=settings.VOICE,
         prompt_manager=container.prompt_manager,
         config=container.ollama_config,
         integrations=container.get_tools(),
     )
 
-    return orchestrator
+    return agent

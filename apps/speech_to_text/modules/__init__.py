@@ -1,15 +1,14 @@
-from .speech_detection import SpeechDetector
-from .silence_gated_segmenter import SilenceGatedSegmenter
+from .vad import VAD
+from .segmention import SilenceGatedSegmenter
+from .verifier import Verifier
 from .transcriber import Transcriber
-from .speaker_diarization import SpeakerDiarization
-from .speech_verifier import SpeakerVerifier
-from .query_aggregator import ParallelQueryAggregator
+from .query_aggregator import QueryAggregator
+
 
 __all__ = [
-    "SpeechDetector",
-    "SilenceGatedSegmenter",
+    "QueryAggregator",
+    "VAD",
+    "Verifier",
     "Transcriber",
-    "SpeakerDiarization",
-    "SpeakerVerifier",
-    "ParallelQueryAggregator",
+    "SilenceGatedSegmenter",
 ]

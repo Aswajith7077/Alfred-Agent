@@ -1,3 +1,3 @@
-from .pipeline_mp import _pipeline_worker
+from .register_tasks import register_stt_tasks
 
-__all__ = ["_pipeline_worker"]
+__all__ = ["register_stt_tasks"]

@@ -1,21 +1,26 @@
-from .speech_detection import SpeechDetector
-from typing import Callable
+from .vad import VAD
 import numpy as np
+from multiprocessing import Queue as MPQueue
+
+sample_rate = 16000
 
 
 class SilenceGatedSegmenter:
     def __init__(
         self,
-        speech_detector: SpeechDetector,
-        sample_rate: int,
-        on_segment: Callable[[np.ndarray], None],
+        vad: VAD,
+        vad_queue: MPQueue,
+        state_queue: MPQueue,
+        transcription_queue: MPQueue,
         flush_silence_ms: int = 700,
         min_speech_ms: int = 300,
         max_buffer_s: float = 30.0,
     ):
-        self.detector = speech_detector
+        self.vad = vad
+        self.vad_queue = vad_queue
+        self.state_queue = state_queue
+        self.transcription_queue = transcription_queue
         self.sample_rate = sample_rate
-        self.on_segment = on_segment
 
         self.flush_silence_samples = int(sample_rate * flush_silence_ms / 1000)
         self.min_speech_samples = int(sample_rate * min_speech_ms / 1000)
@@ -25,14 +30,25 @@ class SilenceGatedSegmenter:
         self.gap_samples = int(sample_rate * 0.15)
         self.silence_gap = np.zeros(self.gap_samples, dtype=np.float32)
 
+        self._was_speaking = False
+        self._post_flush_silence_samples = int(sample_rate * 1.5)  # 1.5s after flush
+        self._post_flush_silence_counter = 0
+        self._waiting_for_post_flush_silence = False
+
         self._reset()
+
+    def _emit(self, message_type: str):
+        try:
+            self.state_queue.put_nowait({"type": message_type})
+        except Exception:
+            pass
 
     def push(
         self,
         block: np.ndarray,
     ) -> None:
         block = block.flatten().astype(np.float32)
-        timestamps = self.detector.get_speech_detection(block)
+        timestamps = self.vad.get_speech_detection(block)
         block_has_speech = len(timestamps) > 0
 
         self._buffer_len += len(block)
@@ -44,8 +60,22 @@ class SilenceGatedSegmenter:
             self._speech_sample_count += sum(
                 int((ts["end"] - ts["start"]) * self.sample_rate) for ts in timestamps
             )
+
+            self._emit("vad_speech")
+            self._was_speaking = True
+            self._waiting_for_post_flush_silence = False
+            self._post_flush_silence_counter = 0
+
         else:
             self._silence_samples += len(block)
+
+            if self._waiting_for_post_flush_silence:
+                self._post_flush_silence_counter += len(block)
+                if self._post_flush_silence_counter >= self._post_flush_silence_samples:
+                    self._emit("silence_detected")
+                    print("[Segmenter] silence_detected emitted")
+                    self._waiting_for_post_flush_silence = False
+                    self._post_flush_silence_counter = 0
 
         silence_threshold_hit = (
             self._has_speech and self._silence_samples >= self.flush_silence_samples
@@ -54,6 +84,11 @@ class SilenceGatedSegmenter:
 
         if silence_threshold_hit or buffer_exceed_hit:
             self._flush()
+
+    def start(self):
+        while True:
+            audio = self.vad_queue.get()
+            self.push(audio)
 
     def _flush(self):
         if not self._block_metadata:
@@ -90,12 +125,16 @@ class SilenceGatedSegmenter:
             if i < len(merged) - 1:
                 chunks.append(self.silence_gap)
 
-        self.on_segment(np.concatenate(chunks))
+        self._emit("processing_start")
+        self.transcription_queue.put_nowait(np.concatenate(chunks))
+
+        # Start counting post-flush silence for the silence_detected signal
+        self._waiting_for_post_flush_silence = True
+        self._post_flush_silence_counter = 0
         self._reset()
 
     def _reset(self) -> None:
-        # Reset VAD model state so next utterance starts fresh
-        self.detector.model.reset_states()
+        self.vad.model.reset_states()
         self._block_metadata = []
         self._buffer_len = 0
         self._silence_samples = 0

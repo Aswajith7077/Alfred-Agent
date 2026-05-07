@@ -26,3 +26,18 @@ class PromptManager:
         prompt = template.render(data)
 
         return prompt
+
+    def build_prompt(self, fragments: list[str]) -> str:
+        """
+        Stitch transcript fragments into a single clean query,
+        then wrap it in a structured prompt envelope.
+        """
+        raw = " ".join(f.strip() for f in fragments if f.strip())
+
+        # Normalise spacing / capitalisation
+        raw = " ".join(raw.split())
+        if raw and raw[0].islower():
+            raw = raw[0].upper() + raw[1:]
+
+        return f"""{self.get_system_prompt(Voice.ALFRED)}
+<user_query>{raw}</user_query>"""

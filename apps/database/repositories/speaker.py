@@ -20,7 +20,7 @@ class SpeakerRepository:
 
     def insert_speaker(self, name: str, embedding: np.ndarray, role: Role):
 
-        encrypted_blob = self.fernet.encrypt(embedding)
+        encrypted_blob = self.fernet.encrypt_embedding(embedding)
         with Session(self.engine) as session:
             if role == Role.ROOT:
                 existing_root = session.exec(
@@ -73,7 +73,7 @@ class SpeakerRepository:
                 return None
 
             try:
-                decrypted_embedding = self.fernet.decrypt(root_user.embedding)
+                decrypted_embedding = self.fernet.decrypt_embedding(root_user.embedding)
                 return decrypted_embedding
             except Exception as e:
                 print(
