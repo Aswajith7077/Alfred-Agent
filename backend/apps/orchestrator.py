@@ -29,7 +29,7 @@ class Orchestrator:
     def register(self):
         # just registration, nothing starts yet
         register_agent_tasks(self.agent_manager)
-        register_stt_tasks(self.stt_manager, self.prompt_manager.build_prompt)
+        # register_stt_tasks(self.stt_manager, self.prompt_manager.build_prompt)
 
     def _collect_specs(self):
         """Pull all specs from all managers into one flat dict."""

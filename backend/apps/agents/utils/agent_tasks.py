@@ -6,7 +6,9 @@ def run_agent(llm_queue: MPQueue):
 
     orchestrator = create_agent()
     while True:
-        query_dict = llm_queue.get()
+        # query_dict = llm_queue.get()
+        query_text = input(">>> ")
+        query_dict = {"text": query_text,"type":"prompt"}
 
         try:
             query = LLMQueueItem(**query_dict)

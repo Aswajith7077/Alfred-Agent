@@ -14,7 +14,8 @@ class Settings:
     VAULT_PATH = "C:\\Users\\Aswajith S\\OneDrive\\Documents\\ObsidianVault"
     TEMPLATES_PATH = BASE_DIR / "templates"
     VECTOR_DB_PATH = BASE_DIR / "db" / "vector" / "obsidian-db"
-    USER_DB_PATH = os.environ.get("DATABASE_URL")
+    # USER_DB_PATH = os.environ.get("DATABASE_URL")
+    USER_DB_PATH = "sqlite:///" + str(BASE_DIR / "db" / "functional" / "alfred_local.db")
     HUGGING_FACE_TOKEN = os.environ.get("HUGGING_FACE_TOKEN")
     STATE_DIR = BASE_DIR / "db" / "states"
     INDEX_STATE_PATH = STATE_DIR / "index_state.json"
@@ -54,6 +55,12 @@ class Settings:
 
     EMAIL_REGISTRY_JSON_PATH: str = BASE_DIR / "db" / "states" / "email" / "registry.json.enc"
     EMAIL_REGISTRY_KEY_PATH: str = BASE_DIR / "keys" / "email" / "registry.key"
+
+
+    # Memory Paths
+
+    EPISODIC_MEMORY_PATH: str = BASE_DIR / "db" / "states" / "agents" / "episodic_memory.json"
+    TOOL_USAGE_TRACKER_PATH: str = BASE_DIR / "db" / "states" / "agents" / "tool_usage_tracker.json"
 
 
 """
