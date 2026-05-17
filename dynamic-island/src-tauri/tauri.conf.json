@@ -3,6 +3,7 @@
   "productName": "dynamic-island",
   "version": "0.1.0",
   "identifier": "com.aswajiths.dynamic-island",
+  "permissions": ["core:default", "microphone"],
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",

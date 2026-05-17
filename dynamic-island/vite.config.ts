@@ -30,9 +30,9 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-  resolve:{
+  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-  }
+  },
 }));
