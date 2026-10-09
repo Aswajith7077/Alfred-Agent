@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWakeWord } from "./useWakeWord";
 import { useVoiceRecorder } from "./useVoiceRecorder";
-import { VoiceWave } from "@/components/Alfred/VoiceWave";
 import { AlfredLogo } from "@/components/Alfred/AlfredLogo";
 import { TranscriptModal } from "@/components/Alfred/TranscriptModal";
 import { BarVisualizer, type AgentState } from "@/components/ui/bar-visualizer";

@@ -10,10 +10,8 @@
 
 // export default App;
 
-import { useState } from "react";
 import { DynamicIsland } from "@/components/DynamicIsland/DynamicIsland";
 import { useDynamicIsland } from "@/components/DynamicIsland/useDynamicIsland";
-import type { IslandState } from "@/components/DynamicIsland/types";
 // import { Button } from "@/components/ui/button";
 import "./App.css";
 
@@ -46,85 +44,10 @@ import "./App.css";
 //   );
 // }
 
-// ── Demo presets ─────────────────────────────────────────────────────────────
-
-const DEMOS = [
-  {
-    label: "Idle",
-    state: "idle" as IslandState,
-    content: {},
-  },
-  {
-    label: "Notification",
-    state: "compact" as IslandState,
-    content: {
-      icon: "🔔",
-      title: "New message from Alex",
-      right: <span className="text-white/40 text-[10px]">now</span>,
-    },
-  },
-  //   {
-  //     label: "Music",
-  //     state: "expanded" as IslandState,
-  //     content: {
-  //       icon: "🎵",
-  //       title: "Lofi Hip Hop Radio",
-  //       subtitle: "Chillhop Music • 128 kbps",
-  //       right: <AudioWave />,
-  //     },
-  //   },
-  //   {
-  //     label: "Timer",
-  //     state: "expanded" as IslandState,
-  //     content: {
-  //       icon: "⏱️",
-  //       title: "Kitchen Timer",
-  //       subtitle: "Pasta is almost ready",
-  //       right: <TimerDisplay seconds={247} />,
-  //     },
-  //   },
-  {
-    label: "Ultra",
-    state: "ultra" as IslandState,
-    content: {
-      icon: "📍",
-      title: "Navigation",
-      subtitle: "Coimbatore • ETA 12 min",
-      right: <span className="text-white/40 text-[10px]">Live</span>,
-      expandedContent: (
-        <div className="space-y-1.5">
-          <div className="flex justify-between">
-            <span className="text-white/60">Next turn</span>
-            <span className="text-white font-medium">Turn right on NH-544</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Distance</span>
-            <span className="text-white font-medium">3.2 km</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Arrival</span>
-            <span className="text-green-400 font-medium">4:38 PM</span>
-          </div>
-        </div>
-      ),
-    },
-  },
-];
-
 // ── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { state, content, show, setState } = useDynamicIsland();
-  const [active, setActive] = useState<string>("Idle");
-
-  function activate(demo: (typeof DEMOS)[number]) {
-    setActive(demo.label);
-    if (demo.state === "idle") {
-      setState("idle");
-    } else {
-      show(demo.content, demo.state);
-    }
-  }
+  const { state, content, setState } = useDynamicIsland();
 
   return (
     // Simulate Tauri window — remove these wrapper styles in real app

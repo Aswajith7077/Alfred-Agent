@@ -1,0 +1,37 @@
+name: Docker build check
+
+# Validates both images still build on every PR, without pushing anywhere.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+          - name: frontend
+            context: ./dynamic-island
+            dockerfile: ./dynamic-island/Dockerfile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
