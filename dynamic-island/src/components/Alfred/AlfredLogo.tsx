@@ -1,7 +1,9 @@
 export function AlfredLogo({ size = 24 }: { size?: number }) {
   return (
     <svg
-      className="w-full h-auto p-2"
+      width={size}
+      height={size}
+      className="p-2"
       viewBox="0 0 415 166"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

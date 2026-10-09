@@ -11,7 +11,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings:
-    VAULT_PATH = "C:\\Users\\Aswajith S\\OneDrive\\Documents\\ObsidianVault"
+    VAULT_PATH = os.environ.get(
+        "VAULT_PATH", "C:\\Users\\Aswajith S\\OneDrive\\Documents\\ObsidianVault"
+    )
     TEMPLATES_PATH = BASE_DIR / "templates"
     VECTOR_DB_PATH = BASE_DIR / "db" / "vector" / "obsidian-db"
     # USER_DB_PATH = os.environ.get("DATABASE_URL")
@@ -26,7 +28,7 @@ class Settings:
 
     STATE_PATH = INDEX_STATE_PATH
     ENROLLMENT_KEY_PATH = BASE_DIR / "keys" / ".enrollment.key"
-    OLLAMA_URL = "http://127.0.0.1:11434"
+    OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
     COLLECTION_NAME = "obsidian_documents"
     EMBEDDING_MODEL = "nomic-embed-text"
 

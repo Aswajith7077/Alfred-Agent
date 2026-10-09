@@ -7,13 +7,25 @@ export interface RecorderState {
   interimTranscript: string;
   volume: number; // 0-1 for visualiser
   elapsedSeconds: number;
+  isSilence: boolean;
+  silenceCountdown: number; // seconds remaining before auto-stop
 }
 
 interface UseVoiceRecorderOptions {
   onTranscriptUpdate?: (full: string) => void;
+  /** How long volume must stay below `silenceThreshold` before auto-stopping. */
+  silenceTimeoutMs?: number;
+  /** Volume (0-1) below which audio is considered silent. */
+  silenceThreshold?: number;
+  onSilenceStop?: () => void;
 }
 
-export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions = {}) {
+export function useVoiceRecorder({
+  onTranscriptUpdate,
+  silenceTimeoutMs = 2500,
+  silenceThreshold = 0.04,
+  onSilenceStop,
+}: UseVoiceRecorderOptions = {}) {
   const [state, setState] = useState<RecorderState>({
     isRecording: false,
     isMuted: false,
@@ -21,6 +33,8 @@ export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions
     interimTranscript: "",
     volume: 0,
     elapsedSeconds: 0,
+    isSilence: false,
+    silenceCountdown: silenceTimeoutMs / 1000,
   });
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -32,13 +46,48 @@ export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcriptRef = useRef("");
   const isMutedRef = useRef(false);
+  const silenceStartRef = useRef<number | null>(null);
+  const silenceTimeoutMsRef = useRef(silenceTimeoutMs);
+  const silenceThresholdRef = useRef(silenceThreshold);
+  const onSilenceStopRef = useRef(onSilenceStop);
+  const stopRef = useRef<() => void>(() => {});
+
+  silenceTimeoutMsRef.current = silenceTimeoutMs;
+  silenceThresholdRef.current = silenceThreshold;
+  onSilenceStopRef.current = onSilenceStop;
 
   const tickVolume = useCallback(() => {
     if (!analyserRef.current) return;
     const data = new Uint8Array(analyserRef.current.frequencyBinCount);
     analyserRef.current.getByteFrequencyData(data);
     const avg = data.reduce((s, v) => s + v, 0) / data.length / 255;
-    setState((p) => ({ ...p, volume: isMutedRef.current ? 0 : avg }));
+    const volume = isMutedRef.current ? 0 : avg;
+
+    if (!isMutedRef.current && volume < silenceThresholdRef.current) {
+      if (silenceStartRef.current === null) silenceStartRef.current = performance.now();
+      const remainingMs = Math.max(
+        0,
+        silenceTimeoutMsRef.current - (performance.now() - silenceStartRef.current),
+      );
+
+      if (remainingMs <= 0) {
+        setState((p) => ({ ...p, volume, isSilence: true, silenceCountdown: 0 }));
+        stopRef.current();
+        onSilenceStopRef.current?.();
+        return;
+      }
+
+      setState((p) => ({ ...p, volume, isSilence: true, silenceCountdown: remainingMs / 1000 }));
+    } else {
+      silenceStartRef.current = null;
+      setState((p) => ({
+        ...p,
+        volume,
+        isSilence: false,
+        silenceCountdown: silenceTimeoutMsRef.current / 1000,
+      }));
+    }
+
     animFrameRef.current = requestAnimationFrame(tickVolume);
   }, []);
 
@@ -84,6 +133,7 @@ export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions
   const start = useCallback(async () => {
     transcriptRef.current = "";
     isMutedRef.current = false;
+    silenceStartRef.current = null;
     setState({
       isRecording: true,
       isMuted: false,
@@ -91,6 +141,8 @@ export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions
       interimTranscript: "",
       volume: 0,
       elapsedSeconds: 0,
+      isSilence: false,
+      silenceCountdown: silenceTimeoutMsRef.current / 1000,
     });
 
     // Mic stream for volume meter
@@ -122,12 +174,23 @@ export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions
     if (timerRef.current) clearInterval(timerRef.current);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     audioContextRef.current?.close();
-    setState((p) => ({ ...p, isRecording: false, volume: 0, isMuted: false }));
+    silenceStartRef.current = null;
+    setState((p) => ({
+      ...p,
+      isRecording: false,
+      volume: 0,
+      isMuted: false,
+      isSilence: false,
+      silenceCountdown: silenceTimeoutMsRef.current / 1000,
+    }));
     isMutedRef.current = false;
   }, []);
 
+  stopRef.current = stop;
+
   const toggleMute = useCallback(() => {
     isMutedRef.current = !isMutedRef.current;
+    silenceStartRef.current = null;
     streamRef.current?.getAudioTracks().forEach((t) => {
       t.enabled = !isMutedRef.current;
     });
@@ -136,7 +199,13 @@ export function useVoiceRecorder({ onTranscriptUpdate }: UseVoiceRecorderOptions
     } else {
       startRecognition();
     }
-    setState((p) => ({ ...p, isMuted: !p.isMuted, volume: 0 }));
+    setState((p) => ({
+      ...p,
+      isMuted: !p.isMuted,
+      volume: 0,
+      isSilence: false,
+      silenceCountdown: silenceTimeoutMsRef.current / 1000,
+    }));
   }, [startRecognition]);
 
   useEffect(() => () => stop(), []);
