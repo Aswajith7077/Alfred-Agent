@@ -27,14 +27,20 @@ if not hasattr(agent, "speaker_module"):
     fail("speaker-module", "Agent has no speaker_module attribute — wiring broke")
 ok("speaker-module", f"wired: {type(agent.speaker_module).__name__}")
 
-# Stage 0b — diarization module defaults to disabled (flag off) and never touches sherpa_onnx
+# Stage 0b — diarization module respects the config flag and never touches sherpa_onnx
+# in THIS process either way (it's lazily imported only inside the spawned worker)
+settings = Settings()
 if not hasattr(agent, "diarization_module"):
     fail("diarization-module", "Agent has no diarization_module attribute — wiring broke")
-if agent.diarization_module is not None:
-    fail("diarization-module", f"expected None with DIARIZATION_ENABLED off, got {agent.diarization_module!r}")
+if settings.DIARIZATION_ENABLED:
+    if type(agent.diarization_module).__name__ != "DiarizationManager":
+        fail("diarization-module", f"DIARIZATION_ENABLED is on but got {agent.diarization_module!r}")
+else:
+    if agent.diarization_module is not None:
+        fail("diarization-module", f"expected None with DIARIZATION_ENABLED off, got {agent.diarization_module!r}")
 if "sherpa_onnx" in sys.modules:
     fail("diarization-module", "sherpa_onnx leaked into the agent process")
-ok("diarization-module", "disabled by default, sherpa_onnx not imported into the agent process")
+ok("diarization-module", f"enabled={settings.DIARIZATION_ENABLED}, sherpa_onnx not imported into the agent process")
 
 # Stage 1 — Obsidian vault integration
 obsidian = next((t for t in agent.integrations if type(t).__name__ == "Obsidian"), None)
@@ -56,7 +62,6 @@ for marker in RAW_RETRIEVAL_MARKERS:
 ok("llm-summary", f"got a clean {len(full_response)}-char summary")
 
 # Stage 4 — Piper TTS
-settings = Settings()
 piper = PiperService(voice=settings.VOICE, config=PiperConfig())
 piper.synthesize(full_response[:300])
 ok("piper-tts", "synthesized without crashing")
