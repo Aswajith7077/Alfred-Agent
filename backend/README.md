@@ -23,11 +23,20 @@ cd apps && python main.py
 
 ## Prerequisites
 
-- Ollama running at `http://127.0.0.1:11434` with the `nomic-embed-text` embedding model.
-- An Obsidian vault at the hardcoded Windows path in `apps/config/settings.py` (change it for
-  Linux).
-- Gmail OAuth files in `secrets/gmail/` (`credentials.json` + `token.json`).
-- `.env` with `EMAIL_ADDRESS_I/II`, `EMAIL_APP_PASSWORD_I/II`, `HUGGING_FACE_TOKEN`.
+- **Ollama daemon running** (`ollama serve`) at `http://127.0.0.1:11434`, with:
+  - `nomic-embed-text` pulled (Obsidian embeddings).
+  - A tool-capable chat model matching `apps/agents/models/ollama.py` (`gemma4:e2b` by default).
+- **Voice enrollment** — `cd apps && python enroll_speaker.py` once, before first run. It records
+  6s from the mic and stores a root voiceprint. Without it, `Verifier.get_root_embedding()` stays
+  `None` and every transcription is **silently dropped** (no error, no response, no TTS).
+- An Obsidian vault — path defaults to a hardcoded Windows path in `apps/config/settings.py`, but
+  is overridden by `VAULT_PATH` in `.env` (set this on Linux/macOS).
+- Gmail OAuth files in `secrets/gmail/` (`credentials.json` + `token.json`) — optional, email tools
+  are skipped if `EMAIL_ADDRESS_I`/`EMAIL_APP_PASSWORD_I` aren't set.
+- `.env` with `VAULT_PATH`, `EMAIL_ADDRESS_I/II`, `EMAIL_APP_PASSWORD_I/II`, `HUGGING_FACE_TOKEN`,
+  and optionally `OLLAMA_URL` / `DIARIZATION_ENABLED`.
+- First run only: the VAD process downloads `silero-vad` via `torch.hub` (needs internet access
+  once; cached after in `~/.cache/torch/hub`).
 
 ## Layout (`apps/`)
 
@@ -38,12 +47,21 @@ cd apps && python main.py
 - `vector_db/` — Chroma + BM25 retrieval.
 - `obsidian/` — vault loader + incremental indexing + `search`/`sync` tools.
 - `emails/` — Gmail/IMAP+SMTP integration and encrypted account registry.
-- `speech_to_text/`, `text_to_speech/` — Whisper + pyannote + piper voice pipelines.
+- `speech_to_text/` — recorder → VAD (silero) → segmenter → speaker verify (resemblyzer) →
+  Whisper transcription → query aggregation. Optional sherpa-onnx diarization is separate, gated
+  by `DIARIZATION_ENABLED`, and lazy-loaded only in its own worker process.
+- `text_to_speech/` — Piper TTS.
 
 System prompts are Jinja2 templates in `templates/system_prompts/`. Persistence lives in
 `db/` (gitignored).
 
 ## Testing
 
-No test runner is configured. `apps/tests/obsidian_chroma.py` is a manual script; lint tool is
-`ruff` (listed as a project dependency).
+No test runner is configured. `apps/tests/` has manual, rerunnable scripts (run with
+`python tests/<name>.py` from `apps/`):
+- `pipeline_e2e.py` — the 4-stage check: Obsidian search → LLM summary → Piper TTS.
+- `obsidian_chroma.py` — vault sync / vector search only.
+- `diarization_test.py` — sherpa-onnx diarization against `tests/fixtures/two-speakers.wav`.
+
+Lint tool is `ruff` (`dev` dependency group, not installed by a plain `uv sync` — use
+`uv sync --group dev`).
