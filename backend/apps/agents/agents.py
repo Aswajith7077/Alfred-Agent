@@ -21,8 +21,12 @@ class Agent:
         prompt_manager: PromptManager,
         config: OllamaChatConfig,
         integrations: List[BaseTool],
+        speaker_module=None,
+        diarization_module=None,
     ):
         self.thread_id = str(uuid4())
+        self.speaker_module = speaker_module
+        self.diarization_module = diarization_module
         self.model = ChatOllama(
             model=config.model_name,
             base_url=config.base_url,
@@ -130,12 +134,13 @@ class Agent:
 
         for chunk in self.agent.stream(inputs, config, stream_mode="updates"):
             for node, data in chunk.items():
-                # Track tool calls
+                # Track tool calls (raw tool output is not spoken/yielded)
                 if node == "tools":
                     for msg in data.get("messages", []):
                         name = getattr(msg, "name", None)
                         if name:
                             tools_used.append(name)
+                    continue
 
                 messages = data.get("messages", [])
                 if not messages:

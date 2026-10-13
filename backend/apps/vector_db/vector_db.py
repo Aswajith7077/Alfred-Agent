@@ -28,7 +28,7 @@ class VectorDB:
             model=embedding_model, base_url=settings.OLLAMA_URL
         )
         self.db = Chroma(
-            persist_directory=settings.VECTOR_DB_PATH,
+            persist_directory=str(settings.VECTOR_DB_PATH),
             embedding_function=self.embeddings,
             collection_name=settings.COLLECTION_NAME,
         )

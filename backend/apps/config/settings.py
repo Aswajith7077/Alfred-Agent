@@ -64,6 +64,18 @@ class Settings:
     EPISODIC_MEMORY_PATH: str = BASE_DIR / "db" / "states" / "agents" / "episodic_memory.json"
     TOOL_USAGE_TRACKER_PATH: str = BASE_DIR / "db" / "states" / "agents" / "tool_usage_tracker.json"
 
+    # Speaker diarization (sherpa-onnx, optional, lazy-loaded in its own process)
+    DIARIZATION_ENABLED = os.environ.get("DIARIZATION_ENABLED", "false").lower() == "true"
+    DIARIZATION_MODELS_DIR = BASE_DIR / "models" / "diarization"
+    DIARIZATION_SEGMENTATION_MODEL = (
+        DIARIZATION_MODELS_DIR
+        / "sherpa-onnx-pyannote-segmentation-3-0"
+        / "model.int8.onnx"
+    )
+    DIARIZATION_EMBEDDING_MODEL = (
+        DIARIZATION_MODELS_DIR / "3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx"
+    )
+
 
 """
 

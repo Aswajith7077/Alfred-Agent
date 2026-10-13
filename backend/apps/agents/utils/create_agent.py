@@ -12,6 +12,8 @@ def create_agent() -> Agent:
         prompt_manager=container.prompt_manager,
         config=container.ollama_config,
         integrations=container.get_tools(),
+        speaker_module=container.speaker_module,
+        diarization_module=container.diarization_module,
     )
 
     return agent

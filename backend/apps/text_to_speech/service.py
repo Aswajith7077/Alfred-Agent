@@ -18,7 +18,7 @@ class PiperService:
         voice_path = BASE_DIR / "voices" / f"{voice.value}" / f"{voice.value}.onnx"
         self.voice = PiperVoice.load(voice_path)
         self.stop_flag = Event()
-        self.config = config
+        self.config = config or PiperConfig()
 
     def synthesize(self, text: str):
 

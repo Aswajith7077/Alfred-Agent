@@ -16,5 +16,6 @@ class IndexState:
             return json.load(f)
 
     def save(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.path, "w") as f:
             json.dump(self.state, f, indent=2)
