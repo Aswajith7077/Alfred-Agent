@@ -29,8 +29,9 @@ class PromptManager:
 
     def build_prompt(self, fragments: list[str]) -> str:
         """
-        Stitch transcript fragments into a single clean query,
-        then wrap it in a structured prompt envelope.
+        Stitch transcript fragments into a single clean query.
+        The system prompt is injected separately by Agent.run() via the
+        system role - it must not be duplicated into the user message here.
         """
         raw = " ".join(f.strip() for f in fragments if f.strip())
 
@@ -39,5 +40,4 @@ class PromptManager:
         if raw and raw[0].islower():
             raw = raw[0].upper() + raw[1:]
 
-        return f"""{self.get_system_prompt(Voice.ALFRED)}
-<user_query>{raw}</user_query>"""
+        return raw

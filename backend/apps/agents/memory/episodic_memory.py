@@ -26,5 +26,5 @@ class EpisodicMemory:
             overlap = query_words & set(ep["query"].lower().split())
             if overlap:
                 scored.append((len(overlap), ep))
-        scored.sort(reverse=True)
+        scored.sort(key=lambda x: x[0], reverse=True)
         return [ep for _, ep in scored[:top_k]]
