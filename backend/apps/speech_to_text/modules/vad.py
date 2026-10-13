@@ -13,7 +13,7 @@ class VAD:
         self.threshold = threshold
 
         self.model, _ = torch.hub.load(
-            repo_or_dir="snakers4/silero-vad", model="silero_vad"
+            repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True
         )
         self.model.eval()
         print("[VAD] Loaded Successfully")
