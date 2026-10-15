@@ -9,6 +9,10 @@ A personal AI assistant that combines a local voice + LLM agent backend with a m
 | `backend/` | Python 3.14 agent (`alfred`) — LangGraph agent over Ollama, Obsidian knowledge base, email, speech-to-text / text-to-speech. Managed with `uv`. |
 | `dynamic-island/` | Tauri 2 + React 19 + Vite Desktop UI (pnpm) — a self-contained dynamic-island demo. |
 
+## Demo
+
+[![Demo](https://drive.google.com/thumbnail?id=1iEIQfYOETkNL-h0f6bk19x6SYnKaU58I&sz=w1000)](https://drive.google.com/file/d/1iEIQfYOETkNL-h0f6bk19x6SYnKaU58I/view?usp=sharing)
+
 ## Quick start
 
 ```sh
